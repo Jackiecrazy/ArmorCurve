@@ -5,9 +5,11 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.MobEffects;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -16,6 +18,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import static com.jackiecrazi.armorcurve.GeneralConfig.*;
 
 public class ArmorEventHandler {
+    private static final EntityEquipmentSlot[] slots = {EntityEquipmentSlot.FEET, EntityEquipmentSlot.LEGS, EntityEquipmentSlot.CHEST, EntityEquipmentSlot.HEAD};
     private static float cache, cacheAbsorption;
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -46,23 +49,56 @@ public class ArmorEventHandler {
         if (rt == ReductionType.VANILLA) return;
         float amnt = cache;
         DamageSource ds = e.getSource();
+        float totalArmor = (float) uke.getTotalArmorValue() * (float) touse.armorMultiplier;
+        //armor damage setup
+
+        if (touse != unarmoredMob) {//if(touse instanceof ExtraSettings) {
+            double[] armorThreshold = {touse.armor.bootsDegradeDurability, touse.armor.leggingsDegradeDurability, touse.armor.chestplateDegradeDurability, touse.armor.helmetDegradeDurability};
+            double totalWeight = touse.armor.bootsDegradeWeight + touse.armor.helmetDegradeWeight + touse.armor.chestplateDegradeWeight + touse.armor.leggingsDegradeWeight;
+            float damageDebuff = 1;
+            if (totalWeight != 0) {
+                double[] armorWeight = {touse.armor.bootsDegradeWeight / totalWeight, touse.armor.leggingsDegradeWeight / totalWeight, touse.armor.chestplateDegradeWeight / totalWeight, touse.armor.helmetDegradeWeight / totalWeight};
+                //int armorCurve[] = {touse.armor.bootsDegradeDurability, touse.armor.leggingsDegradingCurve, touse.armor.chestplateDegradeDurability, touse.armor.helmetDegradeDurability};
+                int x = 0;
+                for (EntityEquipmentSlot ees : slots) {
+                    ItemStack is = uke.getItemStackFromSlot(ees);
+                    if (!is.isEmpty() && is.isItemStackDamageable() && is.getItem().getDurabilityForDisplay(is) > 1d - armorThreshold[x]) {
+                        damageDebuff -= armorWeight[x] * (is.getItem().getDurabilityForDisplay(is));
+                    }
+                    x++;
+                }
+            }
+            totalArmor *= damageDebuff;
+        }
+        //}
         //magic!
-        float armor = uke.getTotalArmorValue() * (float) touse.armorMultiplier;
         if (!ds.isUnblockable())
-            amnt = recalculateArmor(amnt, armor, rt);
+            amnt = recalculateArmor(amnt, totalArmor, rt);
         if (!ds.isDamageAbsolute())
             amnt = applyPotionDamageCalculations(uke, ds, amnt, (float) touse.enchEfficiency);
         //end magic!
 
         //armor toughness, here to save your protected butt.
-        double tough = uke.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS).getAttributeValue();
-        if (touse.suddenDeathPrevention && tough > 0) {
-            float threshold = uke.getMaxHealth() / (float)tough;
+        double tough = uke.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS).getAttributeValue() * touse.suddenDeathToughness;
+        if (tough > 0 && !ds.isDamageAbsolute() && !ds.isUnblockable()) {
+            float threshold = uke.getMaxHealth() / (float) tough;
             if (threshold < amnt) {
-                amnt = threshold + (amnt - threshold) / 2f;
+                amnt = threshold + ((amnt - threshold) * (float) touse.suddenDeathDivider);
             }
         }
         //armor toughness awayyyyyy
+
+        if (debugMode) {
+            if ((uke instanceof EntityPlayer)) {
+                String message = String.format("Original damage: %.3f%nArmor: %.3f%nFinal damage: %.3f%n", cache, totalArmor, amnt);
+                uke.sendMessage(new TextComponentString(message));
+            }
+            if (ds.getTrueSource() instanceof EntityPlayer) {
+                String message = String.format("Original damage: %.3f%nArmor: %.3f%nFinal damage: %.3f%n", cache, totalArmor, amnt);
+                ds.getTrueSource().sendMessage(new TextComponentString(message));
+            }
+        }
+
         amnt -= cacheAbsorption;
         if (amnt < 0) {
             uke.setAbsorptionAmount(-amnt);
