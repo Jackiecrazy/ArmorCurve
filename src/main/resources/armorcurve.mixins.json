@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "jackiecrazy.armorcurve.mixin",
+  "refmap": "armorcurve.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ArmorDegradationMixin",
+    "AttributeUpdater",
+    "DamageCalculatorMixin",
+    "ValueUpdateMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
