@@ -1,7 +1,7 @@
 package jackiecrazy.armorcurve.mixin;
 
 import jackiecrazy.armorcurve.CurveConfig;
-import net.minecraft.util.CombatRules;
+import net.minecraft.world.damagesource.CombatRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,8 +13,9 @@ import java.math.BigDecimal;
 public class DamageCalculatorMixin {
     @Inject(cancellable = true, at = @At("HEAD"), method = "getDamageAfterAbsorb(FFF)F")
     private static void getDamageLeft(float damage, float armor, float armorToughness, CallbackInfoReturnable<Float> info) {
-        BigDecimal ret = CurveConfig.armor.with("damage", new BigDecimal(damage)).and("armor", new BigDecimal(armor)).and("toughness", new BigDecimal(armorToughness)).eval();
-        ret = CurveConfig.toughness.with("damage", ret).and("armor", new BigDecimal(armor)).and("toughness", new BigDecimal(armorToughness)).eval();
+        if(!Float.isFinite(damage)||!Float.isFinite(armor)||!Float.isFinite(armorToughness))return;
+        BigDecimal ret = CurveConfig.first.with("damage", new BigDecimal(damage)).and("armor", new BigDecimal(armor)).and("toughness", new BigDecimal(armorToughness)).eval();
+        ret = CurveConfig.second.with("damage", ret).and("armor", new BigDecimal(armor)).and("toughness", new BigDecimal(armorToughness)).eval();
 //        float reduction = 1 + armor / 5;
 //        float afterDamage = damage / reduction;
 //
@@ -28,6 +29,7 @@ public class DamageCalculatorMixin {
 
     @Inject(cancellable = true, at = @At("HEAD"), method = "getDamageAfterMagicAbsorb(FF)F")
     private static void getInflictedDamage(float damage, float prot, CallbackInfoReturnable<Float> info) {
+        if(!Float.isFinite(damage)||!Float.isFinite(prot))return;
         BigDecimal ret = CurveConfig.enchants.with("damage", new BigDecimal(damage)).and("enchant", new BigDecimal(prot)).eval();
 
         //float reduction = 1 + prot / 5;
