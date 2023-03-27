@@ -50,8 +50,8 @@ public abstract class ArmorDegradationMixin {
             float degrade = CurveConfig.degrade.with("remaining", new BigDecimal(this.getMaxDamage() - this.getDamageValue())).and("max", new BigDecimal(this.getMaxDamage())).eval().floatValue();
             for (Attribute e : m.keySet()) {
                 boolean handle = true;
-                if (e.getRegistryName() != null && e.getRegistryName().getNamespace().equals("wardance")) {
-                    handle = e.getDescriptionId().equals("wardance.absorption") || e.getDescriptionId().equals("wardance.deflection") || e.getDescriptionId().equals("wardance.shatter") || e.getDescriptionId().equals("stealth");
+                if (e.getDescriptionId().contains("stealth")) {
+                    handle = e.getDescriptionId().equals("stealth");
                 } else if (e != Attributes.ARMOR && !CurveConfig.degradeAll) handle = false;
                 for (AttributeModifier eam : m.get(e)) {
                     AttributeModifier degradedEAM = new AttributeModifier(eam.getId(), eam.getName(), handle ? (degrade) * eam.getAmount() : eam.getAmount(), eam.getOperation());
