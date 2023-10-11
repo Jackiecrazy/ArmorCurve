@@ -48,6 +48,7 @@ public abstract class ArmorDegradationMixin {
             ImmutableMultimap.Builder<Attribute, AttributeModifier> copy = ImmutableMultimap.builder();
             if (CurveConfig.degrade == null || CurveConfig.degrade.toString().equals("1")) return;
             float degrade = CurveConfig.degrade.with("remaining", new BigDecimal(this.getMaxDamage() - this.getDamageValue())).and("max", new BigDecimal(this.getMaxDamage())).eval().floatValue();
+
             for (Attribute e : m.keySet()) {
                 boolean handle = true;
                 if (e.getDescriptionId().contains("stealth")) {

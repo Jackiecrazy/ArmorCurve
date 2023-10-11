@@ -1,5 +1,6 @@
 package jackiecrazy.armorcurve.mixin;
 
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -18,7 +19,7 @@ public abstract class ValueUpdateMixin {
 
     @Inject(at = @At("HEAD"), method = "getDamageAfterArmorAbsorb")
     protected void applyArmorToDamage(DamageSource source, float damage, CallbackInfoReturnable<Float> cir) {
-        if(!source.isBypassArmor())
+        if(!source.is(DamageTypeTags.BYPASSES_ARMOR))
             ((AttributeUpdater)(this.getAttribute(Attributes.ARMOR))).invokeSetDirty();
     }
 }
