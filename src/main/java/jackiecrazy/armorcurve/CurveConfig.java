@@ -28,9 +28,9 @@ public class CurveConfig {
     }
 
     public CurveConfig(ForgeConfigSpec.Builder b) {
-        _armor = b.translation("armorcurve.armor").comment("configure how much armor does against damage. Valid values are 'armor', 'damage', and 'toughness'. Set to 1 to not modify damage at this step.").define("first damage reduction formula", "damage");
-        _armorToughness = b.translation("armorcurve.armorToughness").comment("configure sudden death protection for armor toughness. Valid values are 'armor', 'damage', and 'toughness'. Set to 1 to not modify damage at this step.").define("second damage reduction formula", "damage*MAX(15/(15+armor+MIN(damage,toughness)),0.1)");
-        _enchantments = b.translation("armorcurve.enchants").comment("configure the efficiency of protection enchantments. Valid values are 'enchant' and 'damage'. Set to 1 to not modify damage at this step.").define("enchantment damage reduction formula", "damage*10/(10+enchant)");
+        _armor = b.translation("armorcurve.armor").comment("configure how much armor does against damage. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.").define("first damage reduction formula", "damage");
+        _armorToughness = b.translation("armorcurve.armorToughness").comment("configure sudden death protection for armor toughness. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.").define("second damage reduction formula", "damage*MAX(15/(15+armor+MIN(damage,toughness)),0.1)");
+        _enchantments = b.translation("armorcurve.enchants").comment("configure the efficiency of protection enchantments. Valid values are 'enchant' and 'damage'. Set to \"damage\" to not modify damage at this step.").define("enchantment damage reduction formula", "damage*10/(10+enchant)");
         _degradation = b.translation("armorcurve.degrade").comment("configure how armor degrades. Valid values are 'remaining' and 'max'. Set to 1 to disable.").define("armor degradation formula", "remaining/MAX(max,1)");
         _degradeAll = b.translation("armorcurve.degradeAll").comment("Set to false to only cause the armor value to degrade. This will leave extra attributes such as toughness untouched. If using Project: War Dance, stealth will not degrade regardless of damage.").define("universal armor degradation", true);
     }
