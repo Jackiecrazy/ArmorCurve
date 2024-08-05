@@ -1,64 +1,58 @@
 package jackiecrazy.armorcurve;
 
 import com.udojava.evalex.apothavoidance.Expression;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import org.apache.commons.lang3.tuple.Pair;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-@Mod.EventBusSubscriber(modid = ArmorCurve.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@Config(modid = ArmorCurve.MODID, name = "armor_curve")
+@Config.LangKey("taoism.config.combat.title")
 public class CurveConfig {
     //that is, subtract damage by (d>40/(t+1))(d-40/(t+1))/2
-    public static final CurveConfig CONFIG;
-    public static final ForgeConfigSpec CONFIG_SPEC;
-    private final ForgeConfigSpec.ConfigValue<String> _armor;
-    private final ForgeConfigSpec.ConfigValue<String> _armorToughness;
-    private final ForgeConfigSpec.ConfigValue<String> _enchantments;
-    private final ForgeConfigSpec.ConfigValue<String> _degradation;
-    private final ForgeConfigSpec.BooleanValue _degradeAll;
-    public static Expression first, second, enchants, degrade;
-    public static boolean degradeAll;
-
-    static {
-        final Pair<CurveConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(CurveConfig::new);
-        CONFIG = specPair.getLeft();
-        CONFIG_SPEC = specPair.getRight();
-    }
-
-    public CurveConfig(ForgeConfigSpec.Builder b) {
-        _armor = b.translation("armorcurve.armor").comment("configure how much armor does against damage. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.").define("first damage reduction formula", "damage");
-        _armorToughness = b.translation("armorcurve.armorToughness").comment("configure sudden death protection for armor toughness. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.").define("second damage reduction formula", "damage*MAX(15/(15+armor+MIN(damage,toughness)),0.1)");
-        _enchantments = b.translation("armorcurve.enchants").comment("configure the efficiency of protection enchantments. Valid values are 'enchant' and 'damage'. Set to \"damage\" to not modify damage at this step.").define("enchantment damage reduction formula", "damage*10/(10+enchant)");
-        _degradation = b.translation("armorcurve.degrade").comment("configure how armor degrades. Valid values are 'remaining' and 'max'. Set to 1 to disable.").define("armor degradation formula", "remaining/MAX(max,1)");
-        _degradeAll = b.translation("armorcurve.degradeAll").comment("Set to false to only cause the armor value to degrade. This will leave extra attributes such as toughness untouched. If using Project: War Dance, stealth will not degrade regardless of damage.").define("universal armor degradation", true);
-    }
+    @Config.Comment("configure how much armor does against damage. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.")
+    public static String firstFormula="damage";
+    @Config.Comment("configure sudden death protection for armor toughness. Valid values are 'armor', 'damage', and 'toughness'. Set to \"damage\" to not modify damage at this step.")
+    public static String secondFormula="damage*MAX(15/(15+armor+MIN(damage,toughness)),0.1)";
+    @Config.Comment("configure the efficiency of protection enchantments. Valid values are 'enchant' and 'damage'. Set to \"damage\" to not modify damage at this step.")
+    public static String enchantmentFormula="damage*10/(10+enchant)";
+    @Config.Comment("configure how armor degrades. Valid values are 'remaining' and 'max'. Set to 1 to disable.")
+    public static String degradationFormula="sqrt(remaining/MAX(max,1))";
+    @Config.Ignore
+    public static Expression first;
+    @Config.Ignore
+    public static Expression second;
+    @Config.Ignore
+    public static Expression enchants;
+    @Config.Ignore
+    public static Expression degrade;
+    public static boolean degradeAll=false;
 
     private static void bake() throws ArithmeticException {
-        first = new Expression(CONFIG._armor.get());
-        second = new Expression(CONFIG._armorToughness.get());
-        enchants = new Expression(CONFIG._enchantments.get());
-        degrade = new Expression(CONFIG._degradation.get());
-        degradeAll=CONFIG._degradeAll.get();
         try {
+            first = new Expression(firstFormula);
             first.with("damage", "1").and("armor", "10").and("toughness", "0").eval();
         } catch (Expression.ExpressionException e) {
             first =new Expression("1");
             throw new ArithmeticException("invalid formula " + first);
         }
         try {
+            second = new Expression(secondFormula);
             second.with("damage", "1").and("armor", "10").and("toughness", "0").eval();
         } catch (Expression.ExpressionException e) {
             second =new Expression("1");
             throw new ArithmeticException("invalid formula " + second);
         }
         try {
+            enchants = new Expression(enchantmentFormula);
             enchants.with("damage", "1").and("enchant", "2").eval();
         } catch (Expression.ExpressionException e) {
             enchants=new Expression("1");
             throw new ArithmeticException("invalid formula " + enchants);
         }
         try {
+            degrade = new Expression(degradationFormula);
             degrade.with("remaining", "100").and("max", "100").eval();
         } catch (Expression.ExpressionException e) {
             degrade=new Expression("1");
@@ -66,14 +60,14 @@ public class CurveConfig {
         }
     }
 
-    @SubscribeEvent
-    public static void loadConfig(ModConfigEvent e) {
-        if (e.getConfig().getSpec() == CONFIG_SPEC) {
-            try {
+    @Mod.EventBusSubscriber(modid = ArmorCurve.MODID)
+    private static class EventHandler {
+
+        @SubscribeEvent
+        public static void onConfigChanged(final ConfigChangedEvent.OnConfigChangedEvent event) {
+            if (event.getModID().equals(ArmorCurve.MODID)) {
+                ConfigManager.sync(ArmorCurve.MODID, Config.Type.INSTANCE);
                 bake();
-            } catch (ArithmeticException validationException) {
-                ArmorCurve.LOGGER.fatal("Armor Curve Configs do not look right, they have been replaced with dummy expressions. Double check your configs.");
-                validationException.printStackTrace();
             }
         }
     }
